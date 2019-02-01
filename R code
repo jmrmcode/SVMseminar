@@ -1,0 +1,62 @@
+# install.packages('e1071',dependencies = T)
+# install.packages('rpart',dependencies = T)
+library('e1071')
+library('rpart')
+
+set.seed(123)
+
+ ## simulate data (height and EVI of trees and shrubs)
+height <- c(runif(50,max = 25,min = 20),runif(50, max = 8, min = 2))
+EVI <- c(runif(50,max = 0.9, min = 0.70),runif(50, max = 0.4, min = 0.1))
+type <- factor(rep(c('tree','shrub'),each=50, length.out=100))
+
+data <- data.frame(height=height,EVI=EVI,type = type)
+head(data)
+tail(data)
+
+ ## split data into a train and test set
+index <- 1:nrow(data)
+testindex <- sample(index, trunc(length(index)/3))
+testset <- data[testindex,]
+trainset <- data[-testindex,]
+
+ ## svm
+svm.model <- svm(type~., data = trainset, cost = 10,kernel='linear')
+plot(svm.model,data=trainset,height ~ EVI)
+svm.pred <- predict(svm.model, testset[,-3])
+
+ ## compute svm confusion matrix
+table(pred = svm.pred, true = testset[,3])
+
+###############################################################3
+ ## A  more complicate  situation, both trees and shrubs show
+ ## a similar heigh and EVI range, but a new dimension is incorporated
+
+## simulate data
+height <- c(runif(50,max = 10,min = 3),runif(50, max = 8, min = 2))
+EVI <- c(runif(50,max = 0.60, min = 0.2),runif(50, max = 0.4, min = 0.1))
+root_length <- c(runif(50,max = 1.5, min = 0.50),runif(50, max = 10.0, min = 3.0))
+type <- factor(rep(c('tree','shrub'),each=50, length.out=100))
+
+data <- data.frame(height=height,EVI=EVI,root_length=root_length,type = type)
+head(data)
+tail(data)
+
+ ## split data into a train and test set
+index <- 1:nrow(data)
+testindex <- sample(index, trunc(length(index)/3))
+testset <- data[testindex,]
+trainset <- data[-testindex,]
+
+ ## svm
+svm.model <- svm(type~height + EVI, data = trainset, cost = 10,kernel='linear')
+svm.model3 <- svm(type~., data = trainset, cost = 1, gamma = 10,kernel='polynomial',coef=2)
+
+plot(svm.model,data=trainset,height ~ EVI)
+plot(svm.model3,data=trainset,root_length ~ EVI)
+svm.pred <- predict(svm.model, testset[,-4])
+svm.pred3 <- predict(svm.model3, testset[,-4])
+
+ ## compute svm confusion matrix
+table(pred = svm.pred, true = testset[,4])
+table(pred = svm.pred3, true = testset[,4])
