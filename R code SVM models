@@ -60,3 +60,44 @@ svm.pred3 <- predict(svm.model3, testset[,-4])
  ## compute svm confusion matrix
 table(pred = svm.pred, true = testset[,4])
 table(pred = svm.pred3, true = testset[,4])
+
+####################################################################
+################### NEON data example ##############################
+library('e1071')
+#install.packages('caret')
+library('caret')
+
+# load the NEON data
+data <- read.csv('hyper_bands_train.csv')
+id <- read.csv('species_id_train.csv')
+
+# aggregate pixels by crown ID
+dataFull <- aggregate(data,by=list('TREE_ID'=data$crown_id),FUN = mean)
+
+# remove bands where scale() crashes in the SVM model
+uniq <- apply(dataFull, 2, unique)
+dataGood <- dataFull[,-which(rapply(uniq,length) <= 3)]
+
+# add species ID by crown ID
+dataGood$species <- factor(dataGood$species[match(dataGood$crown_id,id$crown_id)] <- as.character(id$species[match(dataGood$crown_id,id$crown_id)]))
+
+
+## split data into a train and test set
+index <- 1:nrow(dataGood)
+testindex <- sample(index, trunc(length(index)/3))
+testset <- dataGood[testindex,]
+trainset <- dataGood[-testindex,]
+
+
+# select only bands and species columns
+trainsetSVM <- trainset[,c(4:422)]
+
+# run the SVM model, compute predictions and confusion matrix
+svm.model <- svm(species~., data = trainsetSVM, cost = 1,kernel='linear')
+svm.pred <- predict(svm.model, testset[-422])
+mat <- as.matrix(table(pred = svm.pred, true = testset$species))
+
+# evaluate the SVM predictions
+ss<-confusionMatrix(testset$species,svm.pred)
+print("Accuracy");ss$overall[[1]]
+print("Kappa index");ss$overall[[2]]
